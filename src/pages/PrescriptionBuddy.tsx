@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,7 +15,7 @@ const PrescriptionBuddy = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -28,7 +28,7 @@ const PrescriptionBuddy = () => {
     try {
       // Generate dummy analysis data for UI only
       const dummyAnalysis = {
-        summary: "Prescription contains medicines for fever and cold. Please follow the dosage instructions.",
+        summary: `Prescription contains medicines for fever and cold. Please follow the dosage instructions.`,
         medicines: [
           { name: "Paracetamol", dosage: "500mg", timing: "Twice a day", duration: "5 days" },
           { name: "Cetirizine", dosage: "10mg", timing: "Once a day", duration: "3 days" }
