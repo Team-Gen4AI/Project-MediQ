@@ -1,70 +1,127 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
+import MoodGame from "@/components/mood/MoodGame";
+import MoodRecommendations from "@/components/mood/MoodRecommendations";
+import { MoodType } from "@/components/mood/types";
+
+const moodOptions: { value: number; emoji: string; label: MoodType; color: string }[] = [
+  { value: 1, emoji: "😢", label: "Very Bad", color: "from-red-500 to-red-600" },
+  { value: 2, emoji: "😕", label: "Bad", color: "from-orange-500 to-orange-600" },
+  { value: 3, emoji: "😐", label: "Okay", color: "from-yellow-500 to-yellow-600" },
+  { value: 4, emoji: "🙂", label: "Good", color: "from-green-500 to-green-600" },
+  { value: 5, emoji: "😊", label: "Excellent", color: "from-emerald-500 to-emerald-600" },
+];
+
+const getSupportText = (mood: MoodType) => {
+  switch (mood) {
+    case "Very Bad":
+    case "Bad":
+      return "Get Calming Support";
+    case "Okay":
+      return "Get Engaging Support";
+    case "Good":
+    case "Excellent":
+      return "Get Positive Support";
+    default:
+      return "Get Personalized Support";
+  }
+};
+
+// 🎵 Music samples for each mood
+const moodMusicSamples: Record<
+  MoodType,
+  { name: string; url: string }[]
+> = {
+  "Very Bad": [
+    { name: "Tomorrow (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-tomorrow.mp3" },
+    { name: "Slow Motion (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-slowmotion.mp3" },
+  ],
+  "Bad": [
+    { name: "November (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-november.mp3" },
+    { name: "Relaxing (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-relaxing.mp3" },
+  ],
+  "Okay": [
+    { name: "Once Again (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-onceagain.mp3" },
+    { name: "Sunny (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-sunny.mp3" },
+  ],
+  "Good": [
+    { name: "Happy Rock (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-happyrock.mp3" },
+    { name: "Energy (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-energy.mp3" },
+  ],
+  "Excellent": [
+    { name: "Funday (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-funday.mp3" },
+    { name: "Ukulele (Bensound)", url: "https://www.bensound.com/bensound-music/bensound-ukulele.mp3" },
+  ],
+};
 
 const MentalBuddy = () => {
   const [moodRating, setMoodRating] = useState<number | null>(null);
-  const [notes, setNotes] = useState("");
-  const [suggestions, setSuggestions] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameFeedback, setGameFeedback] = useState("");
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [currentSong, setCurrentSong] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
-  const moodOptions = [
-    { value: 1, emoji: "😢", label: "Very Bad", color: "from-red-500 to-red-600" },
-    { value: 2, emoji: "😕", label: "Bad", color: "from-orange-500 to-orange-600" },
-    { value: 3, emoji: "😐", label: "Okay", color: "from-yellow-500 to-yellow-600" },
-    { value: 4, emoji: "🙂", label: "Good", color: "from-green-500 to-green-600" },
-    { value: 5, emoji: "😊", label: "Excellent", color: "from-emerald-500 to-emerald-600" },
-  ];
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const analyzeMood = async () => {
-    if (moodRating === null) {
-      toast.error("Please select your mood");
-      return;
+  const handleMoodSelect = (value: number, label: MoodType) => {
+    setMoodRating(value);
+    setSelectedMood(label);
+    setGameStarted(true);
+    setShowRecommendations(false);
+    setGameFeedback("");
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+    setCurrentSong(null);
+  };
+
+  const handleGameComplete = (feedback: string) => {
+    setGameFeedback(feedback);
+    setShowRecommendations(true);
+  };
+
+  const handlePlaySong = (url: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
     }
 
-    setLoading(true);
-    try {
-      // TODO: Implement AI analysis via edge function
-      const mockSuggestions = {
-        activities: [
-          "Try 10 minutes of deep breathing exercises",
-          "Take a short walk in nature",
-          "Listen to calming music",
-          "Practice gratitude journaling",
-        ],
-        therapists: moodRating <= 2 ? [
-          { name: "Dr. Sarah Johnson", distance: "2.5 km", specialty: "Anxiety & Depression" },
-          { name: "Dr. Michael Chen", distance: "3.1 km", specialty: "Stress Management" },
-        ] : null,
-        motivationalMessage: "Remember, every day is a new beginning. You're doing great by taking care of your mental health! 💪",
-        meditationLinks: [
-          "5-minute guided meditation",
-          "Relaxing nature sounds",
-        ],
-      };
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.muted = isMuted;
+    audio.play();
 
-      setSuggestions(mockSuggestions);
+    setCurrentSong(url);
+    setIsPlaying(true);
 
-      // Save to database
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await supabase.from("mood_reports").insert({
-          user_id: session.user.id,
-          mood_rating: moodRating,
-          notes: notes,
-          ai_suggestions: JSON.stringify(mockSuggestions),
-        });
-      }
+    audio.onended = () => {
+      setIsPlaying(false);
+    };
+  };
 
-      toast.success("Mood recorded successfully!");
-    } catch (error) {
-      toast.error("Failed to analyze mood");
-    } finally {
-      setLoading(false);
+  const handlePause = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const handleResume = () => {
+    if (audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const toggleMute = () => {
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
     }
   };
 
@@ -79,19 +136,19 @@ const MentalBuddy = () => {
               Select your mood and let us help you feel better
             </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-6">
+            {/* Mood Selection */}
             <div className="grid grid-cols-5 gap-4">
               {moodOptions.map((mood) => (
                 <button
                   key={mood.value}
-                  onClick={() => setMoodRating(mood.value)}
-                  className={`
-                    p-4 rounded-xl border-2 transition-all hover:scale-105
-                    ${moodRating === mood.value
+                  onClick={() => handleMoodSelect(mood.value, mood.label)}
+                  className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                    moodRating === mood.value
                       ? `border-primary bg-gradient-to-br ${mood.color} text-white shadow-lg`
                       : "border-border hover:border-primary/50"
-                    }
-                  `}
+                  }`}
                 >
                   <div className="text-4xl mb-2">{mood.emoji}</div>
                   <p className="text-xs font-medium">{mood.label}</p>
@@ -99,92 +156,50 @@ const MentalBuddy = () => {
               ))}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Tell us more (optional)
-              </label>
-              <Textarea
-                placeholder="What's on your mind today?"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px]"
-              />
-            </div>
+            {/* Breathing / Game Section */}
+            {gameStarted && selectedMood && (
+              <MoodGame mood={selectedMood} onGameComplete={handleGameComplete} />
+            )}
 
-            <Button
-              onClick={analyzeMood}
-              disabled={loading || moodRating === null}
-              className="w-full gradient-medical hover:gradient-hover"
-            >
-              {loading ? "Analyzing..." : "Get Personalized Support"}
-            </Button>
-          </CardContent>
-        </Card>
+            {/* Recommendations */}
+            {showRecommendations && selectedMood && (
+              <MoodRecommendations mood={selectedMood} feedback={gameFeedback} />
+            )}
 
-        {suggestions && (
-          <div className="space-y-6 animate-scale-in">
-            <Card className="card-medical bg-gradient-to-br from-purple-500/10 to-pink-500/10">
-              <CardContent className="pt-6">
-                <p className="text-lg font-medium text-center">
-                  {suggestions.motivationalMessage}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-medical">
-              <CardHeader>
-                <CardTitle>Recommended Activities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {suggestions.activities.map((activity: string, i: number) => (
-                    <li key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                      <span>{activity}</span>
+            {/* Music Player Section */}
+            {selectedMood && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-3 text-center">
+                  🎵 {getSupportText(selectedMood)} – Music Samples
+                </h3>
+                <ul className="space-y-2">
+                  {moodMusicSamples[selectedMood].map((track) => (
+                    <li
+                      key={track.url}
+                      className={`p-3 rounded-lg border hover:bg-secondary/20 cursor-pointer transition-all ${
+                        currentSong === track.url ? "bg-secondary/30 border-primary" : "border-border"
+                      }`}
+                      onClick={() => handlePlaySong(track.url)}
+                    >
+                      {track.name}
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
 
-            {suggestions.therapists && (
-              <Card className="card-medical">
-                <CardHeader>
-                  <CardTitle>Nearby Therapists</CardTitle>
-                  <CardDescription>
-                    Consider reaching out to a professional
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {suggestions.therapists.map((therapist: any, i: number) => (
-                      <div key={i} className="p-4 rounded-lg bg-secondary/50">
-                        <p className="font-semibold">{therapist.name}</p>
-                        <p className="text-sm text-muted-foreground">{therapist.specialty}</p>
-                        <p className="text-sm text-primary mt-1">{therapist.distance} away</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card className="card-medical">
-              <CardHeader>
-                <CardTitle>Meditation & Relaxation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {suggestions.meditationLinks.map((link: string, i: number) => (
-                    <Button key={i} variant="outline" className="w-full justify-start">
-                      🎵 {link}
+                {currentSong && (
+                  <div className="mt-4 text-center space-x-4">
+                    <Button onClick={isPlaying ? handlePause : handleResume} variant="outline">
+                      {isPlaying ? "⏸️ Pause" : "▶️ Play"}
                     </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                    <Button onClick={toggleMute} variant="outline">
+                      {isMuted ? "🔇 Unmute" : "🔊 Mute"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

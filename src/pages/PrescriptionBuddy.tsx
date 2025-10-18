@@ -7,13 +7,28 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 
-const API_KEY = "AIzaSyCDNCQ3vLOhhRWhaijPzP7ua5zsPTYySsM";
+const API_KEY = "AIzaSyCDNCQ3vLOhhRWhaijPzP7ua5zsPTYySsM"; // 🔒 Replace with your actual API key
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
 const PrescriptionBuddy = () => {
   const [language, setLanguage] = useState("english");
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // Helper to convert file to base64
+  const toBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+
+  // Extract JSON safely from Gemini output
+  const extractJson = (text: string) => {
+    const match = text.match(/\{[\s\S]*\}/);
+    return match ? match[0] : "{}";
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -26,27 +41,53 @@ const PrescriptionBuddy = () => {
 
     setLoading(true);
     try {
-      // Generate dummy analysis data for UI only
-      const dummyAnalysis = {
-        summary: `Prescription contains medicines for fever and cold. Please follow the dosage instructions.`,
-        medicines: [
-          { name: "Paracetamol", dosage: "500mg", timing: "Twice a day", duration: "5 days" },
-          { name: "Cetirizine", dosage: "10mg", timing: "Once a day", duration: "3 days" }
-        ],
-        sideEffects: ["Drowsiness", "Nausea", "Mild headache"],
-        foodInteractions: {
-          avoid: ["Alcohol", "Grapefruit"],
-          recommended: ["Plenty of water", "Light meals"]
-        }
-      };
-      setTimeout(() => {
-        setAnalysis(dummyAnalysis);
-        toast.success("Prescription analyzed successfully!");
-        setLoading(false);
-      }, 1500); // Simulate loading
+      const base64Image = await toBase64(file);
+
+      // Send image to Gemini model
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `You are a medical assistant. 
+                  Analyze the uploaded prescription image and return clear, structured JSON like:
+                  {
+                    "summary": "Brief overview of the prescription",
+                    "medicines": [{"name": "Paracetamol", "dosage": "500mg", "timing": "Twice a day", "duration": "5 days"}],
+                    "sideEffects": ["Drowsiness", "Nausea"],
+                    "foodInteractions": {"avoid": ["Alcohol"], "recommended": ["Water", "Light meals"]}
+                  }
+                  Provide medicine names, dosage, duration, and timing accurately. 
+                  The explanation should be in ${language} language.`
+                },
+                {
+                  inlineData: {
+                    mimeType: file.type,
+                    data: base64Image.split(",")[1],
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      const result = await response.json();
+      const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      console.log("Gemini raw output:", rawText); // For debugging
+
+      const parsedAnalysis = JSON.parse(extractJson(rawText));
+
+      setAnalysis(parsedAnalysis);
+      toast.success("Prescription analyzed successfully!");
     } catch (error: any) {
-      console.error('Error:', error);
-      toast.error(error.message || "Failed to analyze prescription");
+      console.error("Error analyzing prescription:", error);
+      toast.error("Failed to analyze prescription. Try again.");
+    } finally {
       setLoading(false);
     }
   };
@@ -120,7 +161,7 @@ const PrescriptionBuddy = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Medicines:</h3>
                   <div className="space-y-4">
-                    {analysis.medicines.map((med: any, i: number) => (
+                    {analysis.medicines?.map((med: any, i: number) => (
                       <div key={i} className="p-4 rounded-lg bg-secondary/50 space-y-2">
                         <p className="font-semibold text-primary">{med.name}</p>
                         <div className="grid sm:grid-cols-3 gap-2 text-sm">
@@ -145,7 +186,7 @@ const PrescriptionBuddy = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Possible Side Effects:</h3>
                   <ul className="space-y-2">
-                    {analysis.sideEffects.map((effect: string, i: number) => (
+                    {analysis.sideEffects?.map((effect: string, i: number) => (
                       <li key={i} className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-yellow-500" />
                         <span>{effect}</span>
@@ -158,7 +199,7 @@ const PrescriptionBuddy = () => {
                   <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
                     <h4 className="font-semibold mb-2 text-red-700">Avoid:</h4>
                     <ul className="space-y-1">
-                      {analysis.foodInteractions.avoid.map((item: string, i: number) => (
+                      {analysis.foodInteractions?.avoid?.map((item: string, i: number) => (
                         <li key={i} className="text-sm">• {item}</li>
                       ))}
                     </ul>
@@ -166,7 +207,7 @@ const PrescriptionBuddy = () => {
                   <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
                     <h4 className="font-semibold mb-2 text-green-700">Recommended:</h4>
                     <ul className="space-y-1">
-                      {analysis.foodInteractions.recommended.map((item: string, i: number) => (
+                      {analysis.foodInteractions?.recommended?.map((item: string, i: number) => (
                         <li key={i} className="text-sm">• {item}</li>
                       ))}
                     </ul>

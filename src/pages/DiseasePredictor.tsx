@@ -40,7 +40,7 @@ const DiseasePredictor = () => {
       // Call Gemini API for real-time disease prediction
       const API_KEY = "AIzaSyCDNCQ3vLOhhRWhaijPzP7ua5zsPTYySsM";
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-      const prompt = `Given these symptoms: ${symptoms.join(", ")}, predict the most likely disease, its severity (mild, moderate, severe), whether a doctor is needed, a short description, and 2-3 recommendations.`;
+      const prompt = `Given these symptoms: ${symptoms.join(", ")}, predict the most likely disease, its severity (mild, moderate, severe), whether a doctor is needed, a short description, and 2-3 recommendations. Respond in a structured way.`;
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -52,20 +52,47 @@ const DiseasePredictor = () => {
       });
       if (!response.ok) throw new Error("API error");
       const data = await response.json();
-      // Parse Gemini response
       let resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      // Simple parsing (expects JSON in response)
       let result;
       try {
         result = JSON.parse(resultText);
       } catch {
-        // Fallback: extract info from plain text
+        // Improved fallback: extract severity from plain text using regex and markdown patterns
+        let severity = "unknown";
+        // Try to match markdown or bolded severity
+        const severityRegex = /(?:Severity\s*[:\-]?\s*\*\*|\*\*Severity:\*\*)\s*(mild|moderate|severe|low|mid|high)/i;
+        const severityMatch = resultText.match(severityRegex);
+        if (severityMatch) {
+          severity = severityMatch[1].toLowerCase();
+        } else {
+          // Try to match plain text
+          const plainSeverityRegex = /severity\s*[:\-]?\s*(mild|moderate|severe|low|mid|high)/i;
+          const plainSeverityMatch = resultText.match(plainSeverityRegex);
+          if (plainSeverityMatch) severity = plainSeverityMatch[1].toLowerCase();
+        }
+        // Extract disease
+        let disease = "See analysis below";
+        const diseaseRegex = /Most Likely Disease\s*[:\-]?\s*\*\*([^*]+)\*\*/i;
+        const diseaseMatch = resultText.match(diseaseRegex);
+        if (diseaseMatch) disease = diseaseMatch[1].trim();
+        // Extract recommendations
+        let recommendations = [];
+        const recommendationsRegex = /Recommendations\s*[:\-]?\s*([\s\S]+)/i;
+        const recommendationsMatch = resultText.match(recommendationsRegex);
+        if (recommendationsMatch) {
+          recommendations = recommendationsMatch[1].split(/\n|\d+\.|\•|\-/).map(s => s.trim()).filter(Boolean);
+        }
+        // Extract doctor needed
+        let needsDoctor = false;
+        const doctorRegex = /Doctor Needed\s*[:\-]?\s*\*\*(.+?)\*\*/i;
+        const doctorMatch = resultText.match(doctorRegex);
+        if (doctorMatch) needsDoctor = /yes|true|immediately|monitor closely/i.test(doctorMatch[1]);
         result = {
-          disease: "See analysis below",
-          severity: "unknown",
-          needsDoctor: false,
+          disease,
+          severity,
+          needsDoctor,
           description: resultText,
-          recommendations: []
+          recommendations,
         };
       }
       setPrediction(result);
@@ -158,17 +185,34 @@ const DiseasePredictor = () => {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold mb-2">Analysis:</h3>
-                  <p className="text-muted-foreground">{prediction.description}</p>
+                  <ul className="list-disc ml-6 space-y-2 text-muted-foreground">
+                    {prediction.disease && (
+                      <li>Most Likely Disease: {prediction.disease}</li>
+                    )}
+                    {prediction.severity && prediction.severity !== "unknown" && (
+                      <li>Severity: {prediction.severity.charAt(0).toUpperCase() + prediction.severity.slice(1)}</li>
+                    )}
+                    {typeof prediction.needsDoctor !== "undefined" && (
+                      <li>Doctor Needed: {prediction.needsDoctor ? "Yes" : "No"}</li>
+                    )}
+                    {(() => {
+                      // Extract short description from the analysis text if available
+                      const descMatch = prediction.description.match(/Short Description\s*[:\-]?\s*\*\*(.+?)\*\*/i);
+                      if (descMatch) return <li>Short Description: {descMatch[1]}</li>;
+                      return null;
+                    })()}
+                  </ul>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Recommendations:</h3>
-                  <ul className="space-y-2">
-                    {prediction.recommendations.map((rec: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                        <span className="text-muted-foreground">{rec}</span>
-                      </li>
-                    ))}
+                  <ul className="list-disc ml-6 space-y-2 text-muted-foreground">
+                    {prediction.recommendations && prediction.recommendations.length > 0 ? (
+                      prediction.recommendations.map((rec: string, i: number) => (
+                        <li key={i}>{rec}</li>
+                      ))
+                    ) : (
+                      <li>No recommendations available.</li>
+                    )}
                   </ul>
                 </div>
                 {prediction.needsDoctor && (
