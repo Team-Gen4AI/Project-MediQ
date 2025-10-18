@@ -1,4 +1,0 @@
-project_id = "bqszeumafidxtywajanm"
-
-[functions.analyze-prescription]
-verify_jwt = true
