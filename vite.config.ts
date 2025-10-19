@@ -9,13 +9,17 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  preview: {
+    // Allow your Render host
+    allowedHosts: ["project-mediq-0x8j.onrender.com"],
+    // Optional: set port for preview server
+    port: 10000,
+    strictPort: true,
+  },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-  },
-  build: {
-    outDir: 'build',
   },
 }));
