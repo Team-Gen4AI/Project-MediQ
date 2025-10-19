@@ -38,10 +38,7 @@ const DiseasePredictor = () => {
     setLoading(true);
     try {
       // Call Gemini API for real-time disease prediction
-      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!API_KEY) {
-        throw new Error("Gemini API key not configured");
-      }
+      const API_KEY = "AIzaSyCDNCQ3vLOhhRWhaijPzP7ua5zsPTYySsM";
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
       const prompt = `Given these symptoms: ${symptoms.join(", ")}, predict the most likely disease, its severity (mild, moderate, severe), whether a doctor is needed, a short description, and 2-3 recommendations. Respond in a structured way.`;
       const response = await fetch(API_URL, {
