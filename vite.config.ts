@@ -10,9 +10,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   preview: {
-    // Allow your Render host
+    // Allow Render host
     allowedHosts: ["project-mediq-0x8j.onrender.com"],
-    // Optional: set port for preview server
     port: 10000,
     strictPort: true,
   },
