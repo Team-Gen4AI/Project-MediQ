@@ -6,7 +6,7 @@ import { Upload, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 
-const API_KEY = "AIzaSyAnLd2k_trNK5FRk_SGDgzBEqlLRYs-ESE";
+const API_KEY = "AIzaSyCDBkCVbw077Q9a1l7if_i4QFjhUM4t7z0";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
 const PrescriptionBuddy = () => {
