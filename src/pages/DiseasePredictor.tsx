@@ -37,7 +37,7 @@ const DiseasePredictor = () => {
     setLoading(true);
     try {
       // Call Gemini  for real-time disease prediction
-      const API_KEY = "AQ.Ab8RN6IhJRgJPvHqX7w2Gysn3XZoqm7fn89qt0u5ccKfGkcmBQ";
+      const API_KEY = "AIzaSyCDNCQ3vLOhhRWhaijPzP7ua5zsPTYySsM";
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
       const prompt = `Given these symptoms: ${symptoms.join(", ")}, predict the most likely disease, its severity (mild, moderate, severe), whether a doctor is needed, a short description, and 2-3 recommendations. Respond in a structured JSON format like:
 {
