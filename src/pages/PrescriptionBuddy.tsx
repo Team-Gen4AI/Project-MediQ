@@ -6,8 +6,10 @@ import { Upload, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 
-const API_KEY = "AIzaSyAnLd2k_trNK5FRk_SGDgzBEqlLRYs-ESE";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+ const API_KEY = "AQ.Ab8RN6LVNziGbSYKr_kKljWMVmu9mB5Oaz52eTmIVcdZ-tBEDw";
+
+const API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 const PrescriptionBuddy = () => {
   const [language, setLanguage] = useState("english");
@@ -45,7 +47,10 @@ const PrescriptionBuddy = () => {
       // Send image to Gemini model
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+        "X-goog-api-key": API_KEY,
+        },
         body: JSON.stringify({
           contents: [
             {
