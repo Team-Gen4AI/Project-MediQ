@@ -37,7 +37,7 @@ const DiseasePredictor = () => {
     setLoading(true);
     try {
       // Call Gemini  for real-time disease prediction
-      const API_KEY = "AQ.Ab8RN6KWVl-BGhgfeC8np3tW_EnJ03qznIpQ9qn_rsqw2ro46Q";
+      const API_KEY = "AQ.Ab8RN6LVNziGbSYKr_kKljWMVmu9mB5Oaz52eTmIVcdZ-tBEDw";
 
 const API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
