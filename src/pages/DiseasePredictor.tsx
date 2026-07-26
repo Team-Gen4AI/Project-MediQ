@@ -37,8 +37,10 @@ const DiseasePredictor = () => {
     setLoading(true);
     try {
       // Call Gemini  for real-time disease prediction
-      const API_KEY = "AIzaSyCDNCQ3vLOhhRWhaijPzP7ua5zsPTYySsM";
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+      const API_KEY = "AQ.Ab8RN6KWVl-BGhgfeC8np3tW_EnJ03qznIpQ9qn_rsqw2ro46Q";
+
+const API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
       const prompt = `Given these symptoms: ${symptoms.join(", ")}, predict the most likely disease, its severity (mild, moderate, severe), whether a doctor is needed, a short description, and 2-3 recommendations. Respond in a structured JSON format like:
 {
   "disease": "Disease Name",
@@ -48,15 +50,23 @@ const DiseasePredictor = () => {
   "recommendations": ["Recommendation 1", "Recommendation 2", "Recommendation 3"]
 }`;
       const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
-      
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-goog-api-key": API_KEY,
+  },
+  body: JSON.stringify({
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  }),
+});
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData?.error?.message || `API error: ${response.status} ${response.statusText}`;
